@@ -3,20 +3,24 @@
 // ============================================
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, ChangeEvent } from 'react';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
-
+export interface AIModel{
+  id:number;
+  text:string;
+}
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-
+ const AIModels:AIModel[] = [{id:1,text:"Ollama"},{id:2,text:"Gemini"}];
+ const[modelId,setModelId] = useState<number>(1);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -35,7 +39,7 @@ export default function ChatPage() {
 
     // Create abort controller for cancellation
     abortControllerRef.current = new AbortController();
-  var payload={model:"",prompt:input};
+  var payload={model:modelId,prompt:input};
     try {
       const response = await fetch('http://localhost:5088/api/chats', {
         method: 'POST',
@@ -117,11 +121,26 @@ export default function ChatPage() {
     }
   };
 
+  function onChangeAIDropdown(event: ChangeEvent<HTMLSelectElement>): void {
+    console.log("dropdown event",event)
+    setModelId(parseInt(event.target.value));
+  }
+
   return (
     <div className="flex flex-col h-screen bg-gray-100 p-10">
       {/* Header */}
-      <div className="bg-white shadow-sm p-4 border-b">
+      <div className="bg-white shadow-sm p-4 border-b grid grid-flow-col">
         <h1 className="text-2xl font-bold text-gray-800">Ollama Chat</h1>
+         <select
+            onChange={onChangeAIDropdown}
+            className="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {AIModels.map((item, index) => (
+              <option key={index} value={item.id}>
+                {item.text}
+              </option>
+            ))}
+          </select>
       </div>
 
       {/* Messages Container */}
@@ -135,13 +154,15 @@ export default function ChatPage() {
         {messages.map((message, index) => (
           <div
             key={index}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${
+              message.role === "user" ? "justify-end" : "justify-start"
+            }`}
           >
             <div
               className={`max-w-[100%] rounded-lg p-3 ${
-                message.role === 'user'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-white text-gray-800 shadow'
+                message.role === "user"
+                  ? "bg-blue-500 text-white"
+                  : "bg-white text-gray-800 shadow"
               }`}
             >
               <p className="whitespace-pre-wrap">{message.content}</p>
@@ -149,7 +170,7 @@ export default function ChatPage() {
           </div>
         ))}
 
-        {isLoading && messages[messages.length - 1]?.content === '' && (
+        {isLoading && messages[messages.length - 1]?.content === "" && (
           <div className="flex justify-start">
             <div className="bg-white rounded-lg p-3 shadow">
               <div className="flex space-x-2">
@@ -167,6 +188,7 @@ export default function ChatPage() {
       {/* Input Container */}
       <div className="bg-white border-t p-4 m-5 rounded-lg">
         <div className="max-w-4xl mx-auto flex gap-2">
+         
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -181,7 +203,7 @@ export default function ChatPage() {
               onClick={cancelRequest}
               className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition"
             >
-              Stop
+              ...Thinking
             </button>
           ) : (
             <button
